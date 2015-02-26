@@ -14,5 +14,5 @@ dyn = meta_evolution(net, n_steps=steps, pre_states=init, t_mem=5)
 ```
 
 # TODO
-possibility to change network along the dynamics
-general variables of the system
+* possibility to change network along the dynamics
+* general variables of the system
