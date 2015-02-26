@@ -1,6 +1,10 @@
 # NetSymulationTools
 Package which simulates the dynamics of a network system.
 
+# Version
+__version__ = '0.0.0'
+
+
 # Example
 ```python
 from dynamics_evolution import meta_evolution
