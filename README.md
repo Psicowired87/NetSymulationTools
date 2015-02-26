@@ -7,9 +7,9 @@ __version__ = '0.0.0'
 
 # Example
 ```python
-from dynamics_evolution import meta_evolution
-from net_formation import grid_2d_graph_2order
-from aux_functions import initialization_states
+from NetSymulationTools.dynamics_evolution import meta_evolution
+from NetSymulationTools.net_formation import grid_2d_graph_2order
+from NetSymulationTools.aux_functions import initialization_states
 
 net = grid_2d_graph_2order(n, m)
 init = initialization_states(n*m)
