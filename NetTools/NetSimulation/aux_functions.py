@@ -5,7 +5,6 @@ main functions of this package of dynamic simulations.
 """
 
 import numpy as np
-#from pyCausality import utils
 
 
 def steps_to_do_compute(n_steps, n_pre_states, t_mem, maxstore_fly):
@@ -33,29 +32,27 @@ def steps_to_do_compute(n_steps, n_pre_states, t_mem, maxstore_fly):
     """
 
     # Prepare inputs
-    maxstore_fly = np.inf
+    #maxstore_fly = np.inf
+    assert(n_pre_states <= maxstore_fly)
+    assert(t_mem < maxstore_fly)
+#    assert(t_mem >= n_pre_states)
 
     steps_to_go = []
     if n_steps+n_pre_states <= maxstore_fly:
         steps_to_go.append(n_steps)
         return steps_to_go
     else:
-        n_next = maxstore_fly-n_pre_states
+        n_next = maxstore_fly-t_mem
         steps_to_go.append(n_next)
-        n_steps = n_steps-n_next
-        while True:
-            if n_steps+t_mem <= maxstore_fly:
-                steps_to_go.append(n_steps)
-                return steps_to_go
-            else:
-                n_next = maxstore_fly-t_mem
-                steps_to_go.append(n_next)
-                n_steps = n_steps-n_next
+        steps_to_go_i =\
+            steps_to_do_compute(n_steps-n_next, t_mem, t_mem, maxstore_fly)
+        steps_to_go += steps_to_go_i
+    assert(sum(steps_to_go) == n_steps)
     return steps_to_go
 
 
 def initialization_states(n, n_states=2, init_threshold=0):
-    '''This function creates an initial state randomly with the properties
+    """This function creates an initial state randomly with the properties
     specified in the inputs.
 
     Parameters
@@ -74,7 +71,7 @@ def initialization_states(n, n_states=2, init_threshold=0):
 
     Returns
     -------
-    initial_state: array_like shape (1,n)
+    initial_state: array_like shape (1, n)
         the initial state selected randomly.
 
     Examples
@@ -85,7 +82,7 @@ def initialization_states(n, n_states=2, init_threshold=0):
     >>> initialization_states(10,4)
     array([[1, 1, 2, 1, 2, 3, 2, 1, 1, 0]])
 
-    '''
+    """
     # check
     # TODO: input dictionary with probability distribution
     assert type(n_states) in [int, list, tuple]
@@ -95,7 +92,7 @@ def initialization_states(n, n_states=2, init_threshold=0):
             # HARDCODED
             init_threshold = 0.67
         else:
-            init_threshold = list(np.arange(1./n_states, 1, 1./n_states))
+            init_threshold = list(np.arange(1./n_states, 1, 1./n_states))[:-1]
 
     if type(n_states) == int:
         if type(init_threshold) == list:
@@ -121,7 +118,7 @@ def initialization_states(n, n_states=2, init_threshold=0):
 
 
 def discretize_with_thresholds(array, thres, values=[]):
-    '''This function uses the given thresholds in order to discretize the array
+    """This function uses the given thresholds in order to discretize the array
     in different possible values, given in the variables with this name.
 
     Parameters
@@ -138,32 +135,24 @@ def discretize_with_thresholds(array, thres, values=[]):
     aux: array
         a array with discretized values
 
-    '''
+    """
 
     ## 1. Preparing thresholds and values
     nd_input = len(array.shape)
     # Parche para 1d
     if nd_input == 1:
         array = array.reshape((array.shape[0], 1))
-        nd_input = 2
 
     # From an input of a float
     if type(thres) == float:
         nd_thres = 1
-        if nd_input == 1:
-            thres = thres*np.ones((array.shape[0], 1))
-        elif nd_input == 2:
-            thres = thres*np.ones((array.shape[0], array.shape[1], 1))
+        thres = thres*np.ones((array.shape[0], array.shape[1], 1))
     # From an input of a list
     elif type(thres) == list:
         nd_thres = len(thres)
         aux = np.ones((array.shape[0], array.shape[1], nd_thres))
-        if nd_input == 1:
-            for i in range(nd_thres):
-                aux[:, i] = thres[i]*aux[:, i]
-        elif nd_input == 2:
-            for i in range(nd_thres):
-                aux[:, :, i] = thres[i]*aux[:, :, i]
+        for i in range(nd_thres):
+            aux[:, :, i] = thres[i]*aux[:, :, i]
         thres = aux
     # From an input of a array (4 possibilities)
     elif type(thres) == np.ndarray:
@@ -196,9 +185,9 @@ def discretize_with_thresholds(array, thres, values=[]):
                 aux[i, :, :] = thres[i, :]*aux[i, :, :]
             thres = aux
         # one threshold for each time and element (times-elements)
-        elif len(thres.shape) == 2 and thres.shape[:2] == array.shape[:2]:
-            nd_thres = 1
-            thres = thres.reshape((thres.shape[0], thres.shape[1], nd_thres))
+#        elif len(thres.shape) == 2 and thres.shape[:2] == array.shape[:2]:
+#            nd_thres = 1
+#            thres = thres.reshape((thres.shape[0], thres.shape[1], nd_thres))
         # some thresholds for each time and element
         elif len(thres.shape) == 3:
             nd_thres = thres.shape[2]
@@ -206,8 +195,8 @@ def discretize_with_thresholds(array, thres, values=[]):
     # Setting values
     if values == []:
         values = range(nd_thres+1)
-    elif type(thres) == list:
-        assert nd_thres == len(values)-1
+    elif type(thres) in [np.ndarray, list]:
+        assert(nd_thres == len(values)-1)
 
     # Creation of the limit min and max thresholds
     mini = np.ones((array.shape[0], array.shape[1], 1))*np.min(array)
@@ -222,5 +211,8 @@ def discretize_with_thresholds(array, thres, values=[]):
                                  array <= thres[:, :, i+1])
         indices = np.nonzero(indices)
         aux[indices] = values[i]
+
+    if nd_input == 1:
+        aux = aux.squeeze()
 
     return aux

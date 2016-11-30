@@ -5,13 +5,14 @@ Module which groups the different possible dynamics to evolve a system.
 TODO
 ----
 - More options.
+
 """
 
 import numpy as np
 
 
 def next_step_node(method, variables):
-    '''This function acts as a switcher between the available methods on this
+    """This function acts as a switcher between the available methods on this
     module or apply the one given by method.
 
     Parameters
@@ -32,7 +33,7 @@ def next_step_node(method, variables):
     next_state_node: int or float
         the next state of the node to be updated.
 
-    '''
+    """
 
     method = 'conways'
 
@@ -41,7 +42,8 @@ def next_step_node(method, variables):
     elif method == 'conways':
         # Filter the input variables to only the ones needed.
         needed = ['pre_states_node', 'pre_states_neig']
-        variables = {k: v for k, v in variables.items() if k in needed}
+        variables = dict([(k, v) for k, v in variables.items()
+                          if k in needed])
         # Computation of the next state.
         next_state_node = game_life_evolution_f(**variables)
     else:
@@ -52,7 +54,7 @@ def next_step_node(method, variables):
 
 
 def game_life_evolution_f(pre_states_node, pre_states_neig):
-    '''This functions recreates the evolution step of the original Conways
+    """This functions recreates the evolution step of the original Conways
     game of life.
 
     Parameters
@@ -67,10 +69,10 @@ def game_life_evolution_f(pre_states_node, pre_states_neig):
     next_state: int or float
         the next state of the node to be updated.
 
-    '''
-
+    """
+    assert(len(pre_states_node.shape) == 2)
     # From life state
-    if pre_states_node[-1]:
+    if pre_states_node[-1][0]:
         life_neig = np.sum(pre_states_neig[-1, :])
         next_state = life_neig == 2 or life_neig == 3
     # From dead state

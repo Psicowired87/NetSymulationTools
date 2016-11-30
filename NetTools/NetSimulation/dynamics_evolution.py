@@ -15,6 +15,41 @@ def meta_evolution(net, n_steps=1000, pre_states=[], syncronicity=1,
                    parallelize=None, useweights=[False, False], is_static=True,
                    t_mem=0, aux_file=None, maxstore_fly=None):
     """Main function develop the evolution dealing with the memory problems.
+
+    Parameters
+    ----------
+    net: np.ndarray
+        the network support.
+    n_steps: int (default=1000)
+        the number of steps of the iteration.
+    pre_states: array_like shape(Np,M) (default=[])
+        the previous Np states of the system of each M elements. The memory.
+    syncronicity: int (default=1)
+        the number of updates at the same time.
+    parallelize: str, default None
+        how to parallelize the updating of the states.
+        * If None, no parallelization.
+        * If 'cpu', parallelization throught CPU
+        * If 'gpu', parallelization throught GPU
+    useweights: list, tuple 2-components
+        specify if we use the weights:
+        * If first True, we use edge weights.
+        * If second True, we use node weights.
+    is_static: boolean
+        if the network do not change along the simulation.
+    t_mem: int (default=0)
+        number of previous times which the system uses to update the next
+        state. It is called the memory of the system.
+    aux_file: str (default=None)
+        the auxiliar file in which is going to do ROM support.
+    maxstore_fly: integer (default=None)
+        max steps to compute in memory.
+
+    Returns
+    -------
+    dynamics: array_like, shape (n_steps,len(node_list))
+        the description of the evolution of the whole system.
+
     """
     ## 0. Checking inputs
     # Check nodes of the system
@@ -23,7 +58,7 @@ def meta_evolution(net, n_steps=1000, pre_states=[], syncronicity=1,
 
     ## 1. Obtain the initial state.
     n = len(net.nodes())
-    if pre_states == []:
+    if type(pre_states) != np.ndarray:
         # Generate first state
         pre_states = initialization_states(n)
         n_pre_states = 1
@@ -31,6 +66,7 @@ def meta_evolution(net, n_steps=1000, pre_states=[], syncronicity=1,
         n_pre_states = pre_states.shape[0]
 
     ## 2. Compute the number of steps for each part of the tasks
+    maxstore_fly = np.inf if maxstore_fly is None else maxstore_fly
     steps_to_do = steps_to_do_compute(n_steps, n_pre_states,
                                       t_mem, maxstore_fly)
     # Set aux_file
@@ -51,7 +87,7 @@ def meta_evolution(net, n_steps=1000, pre_states=[], syncronicity=1,
     if aux_file is not None:
         # Write
         dynamics = pd.DataFrame(dynamics, columns=net.nodes())
-        dynamics.to_csv()
+        dynamics.to_csv(aux_file[0])
         # Next write info
         aux_file = aux_file[1:]
     steps_to_do = steps_to_do[1:]
@@ -78,7 +114,7 @@ def meta_evolution(net, n_steps=1000, pre_states=[], syncronicity=1,
 def evolution(net, node_list=[], n_steps=1000, pre_states=[], syncronicity=1,
               parallelize=None, useweights=[False, False], is_static=True,
               t_mem=0):
-    '''The main function to run a simulation in which we could specify a lot
+    """The main function to run a simulation in which we could specify a lot
     of parameters and select or input the update rule.
 
     Parameters
@@ -104,13 +140,16 @@ def evolution(net, node_list=[], n_steps=1000, pre_states=[], syncronicity=1,
         * If second True, we use node weights.
     is_static: boolean
         if the network do not change along the simulation.
+    t_mem: int (default=0)
+        number of previous times which the system uses to update the next
+        state. It is called the memory of the system.
 
     Returns
     -------
     dynamics: array_like, shape (n_steps,len(node_list))
         the description of the evolution of the whole system.
 
-    '''
+    """
 
     ## 0. Checking inputs (to be substituted for the error module)
     # Check nodes of the system
@@ -127,8 +166,10 @@ def evolution(net, node_list=[], n_steps=1000, pre_states=[], syncronicity=1,
         pre_states = initialization_states(n)
 
     # Prepare memory to store the whole dynamics.
-    dynamics = np.zeros([n_steps+1, len(node_list)])
-    dynamics[0, :] = pre_states
+    n_pre = 1 if len(pre_states.shape) == 1 else len(pre_states)
+    pre_idxs = 0 if len(pre_states.shape) == 1 else range(n_pre)
+    dynamics = np.zeros([n_steps+n_pre, len(node_list)])
+    dynamics[pre_idxs, :] = pre_states
 
     # Calculate the possible information of the net required
     if is_static and syncronicity == 1 and bool(parallelize):
@@ -152,12 +193,12 @@ def evolution(net, node_list=[], n_steps=1000, pre_states=[], syncronicity=1,
 
 def compute_next_state(pre_states, node_list, net, syncronicity=1,
                        parallelize=None, useweights=[False, False]):
-    '''This function make evolve the system to the next state. Could use the
+    """This function make evolve the system to the next state. Could use the
     network structure and the previous states.
 
     Parameters
     ----------
-    pre_states : array_like, shape (N,M)
+    pre_states : array_like, shape (N, M)
         the values of the time history of the signal. N times and M elements.
     node_list : list
         the list of all the nodes of the systes.
@@ -174,10 +215,14 @@ def compute_next_state(pre_states, node_list, net, syncronicity=1,
         * If None, no parallelization.
         * If 'cpu', parallelization throught CPU
         * If 'gpu', parallelization throught GPU
+    useweights: list, tuple 2-components
+        specify if we use the weights:
+        * If first True, we use edge weights.
+        * If second True, we use node weights.
 
     Returns
     -------
-    ys : ndarray, shape (1,pre_states.shape[1])
+    ys : ndarray, shape (1, pre_states.shape[1])
         the next state of the system.
         It has the state of each element of the system at one time.
 
@@ -200,33 +245,34 @@ def compute_next_state(pre_states, node_list, net, syncronicity=1,
     >>> dyn.shape
     (10000,1000)
 
-    '''
-
+    """
     ## 1. Syncronicity
     n = len(node_list)
     # Preparing the next state considering the syncronicity
     if syncronicity == 1:
         # Prepare all for the next step
         next_states = np.zeros(n)
+        nodes_idx = list(node_list)
     elif syncronicity == 0:
         # Prepare only one for the next state
         next_states = pre_states[-1, :]
-        node_list = np.random.randint(0, n, 1)
+        nodes_idx = list(np.random.randint(0, n, 1))
     else:
         # Prepare some for the next state
         next_states = pre_states[-1, :]
-        node_list = np.random.randint(0, n, np.around(n*syncronicity))
+        nodes_idx = list(np.random.permutation(n)[:np.around(n*syncronicity)])
 
     ## 2. Compute next state in the parralel way
+    parallelize = False if parallelize not in ['cpu' 'gpu'] else parallelize
     if not parallelize:
         # For each node to be updated, search the new state
-        for node in node_list:
+        for node in nodes_idx:
             # Previous magnitudes needed
             node_index, neigh_index = get_node_structure_info(node, net,
                                                               node_list)
             # Computation of the next state
             jnod = node_list.index(node)
-            kwargs = {'pre_states_node': pre_states[:, node_index],
+            kwargs = {'pre_states_node': pre_states[:, [node_index]],
                       'pre_states_neig': pre_states[:, neigh_index]}
             kwargs = {'method': 'conways', 'variables': kwargs}
             next_states[jnod] = next_step_node(**kwargs)

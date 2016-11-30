@@ -13,7 +13,7 @@ import networkx as nx
 #### Network creation
 #######################
 def grid_2d_graph_2order(m, n, periodic=True, directed=True):
-    '''This function creates a 2d grid with first and second neighbours of the
+    """This function creates a 2d grid with first and second neighbours of the
     dimensions of the grid specified.
 
     Parameters
@@ -39,7 +39,7 @@ def grid_2d_graph_2order(m, n, periodic=True, directed=True):
     >>> np.all([len(net.neighbors(node))==8 for node in net.nodes()])
     True
 
-    '''
+    """
 
     G = nx.grid_2d_graph(m, n, periodic)
     edgs = G.edges()

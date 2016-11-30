@@ -1,8 +1,8 @@
 
 
 import time
-from NetSymulationTools.dynamics_evolution import *
-from NetSymulationTools.net_formation import *
+from NetTools.NetSymulationTools.dynamics_evolution import *
+from NetTools.NetSymulationTools.net_formation import *
 
 ts = []
 step_list = [1, 10, 100, 250, 500, 750, 1000]

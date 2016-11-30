@@ -33,3 +33,5 @@ Variables structured
 
 """
 
+## Main functions
+from dynamics_evolution import meta_evolution
