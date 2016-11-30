@@ -1,8 +1,6 @@
-scikit-learn>=0.17
+networkx>=1.8
 numpy
 scipy
-matplotlib>=1.4
 pandas>=0.16
-networkx>=1.8
 nose
 libgfortran
