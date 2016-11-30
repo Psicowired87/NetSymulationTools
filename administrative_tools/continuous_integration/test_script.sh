@@ -9,7 +9,7 @@
 set -e
 
 if [[ "$COVERAGE" == "true" ]]; then
-    nosetests NetTools/tests/__init__.py --with-coverage --cover-package=NetTools
+    nosetests NetTools/__init__.py --with-coverage --cover-package=NetTools
 else
-    nosetests
+    nosetests NetTools/__init__.py
 fi
