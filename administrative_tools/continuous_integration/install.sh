@@ -78,12 +78,6 @@ elif [[ "$DISTRIB" == "ubuntu" ]]; then
     virtualenv --system-site-packages testenv
     source testenv/bin/activate
     pip install -r administrative_tools/continuous_integration/requirements.txt
-    #pip install nose
-    #pip install coverage
-    #pip install numpy==$NUMPY_VERSION
-    #pip install scipy==$SCIPY_VERSION
-    #pip install six
-    #pip install quantities
 fi
 
 if [[ "$COVERAGE" == "true" ]]; then
